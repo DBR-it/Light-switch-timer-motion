@@ -39,13 +39,10 @@ blueprint:
       description: >
         Set the duration for the countdown timer. The switch will turn off when this time elapses
         without any motion detected.
-      default: 15
+      default: '00:15:00'
       selector:
-        number:
-          min: 1
-          max: 60
-          unit_of_measurement: minutes
-          mode: box
+        text:
+          multiline: false
 
 trigger:
   - platform: state
