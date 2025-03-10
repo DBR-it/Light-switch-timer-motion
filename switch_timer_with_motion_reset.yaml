@@ -43,6 +43,9 @@ trigger:
   - platform: state
     entity_id: !input motion_sensor
     to: "off"
+  - platform: state
+    entity_id: !input switch_entity
+    to: "off"
 
 action:
   - choose:
@@ -56,10 +59,20 @@ action:
               entity_id: !input timer_entity
             data:
               duration: !input duration
+
       - conditions:
           - condition: state
             entity_id: !input motion_sensor
             state: "on"
+        sequence:
+          - service: timer.cancel
+            target:
+              entity_id: !input timer_entity
+
+      - conditions:
+          - condition: state
+            entity_id: !input switch_entity
+            state: "off"
         sequence:
           - service: timer.cancel
             target:
