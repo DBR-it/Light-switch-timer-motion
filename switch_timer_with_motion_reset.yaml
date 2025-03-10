@@ -1,6 +1,9 @@
 blueprint:
   name: Switch Timer with Motion Reset
-  description: Automatically turn off a switch (e.g., lights, fan) when no motion is detected.
+  description: >
+    Automatically turn off a switch (e.g., lights, fan) when no motion is detected.
+    This blueprint requires a Timer Helper to be created separately in Home Assistant.
+    The duration of the timer is managed by the Timer Helper settings.
   domain: automation
   input:
     motion_sensor:
@@ -20,7 +23,9 @@ blueprint:
 
     timer_entity:
       name: Timer Helper
-      description: Select the timer helper for the countdown.
+      description: >
+        Select the timer helper for the countdown. Ensure you configure the duration
+        of the timer in the Timer Helper settings, as the automation will not set it automatically.
       selector:
         entity:
           domain: timer
@@ -46,6 +51,15 @@ action:
   - choose:
       - conditions:
           - condition: state
+            entity_id: !input switch_entity
+            state: "off"
+        sequence:
+          - service: timer.cancel
+            target:
+              entity_id: !input timer_entity
+
+      - conditions:
+          - condition: state
             entity_id: !input motion_sensor
             state: "off"
         sequence:
@@ -57,15 +71,6 @@ action:
           - condition: state
             entity_id: !input motion_sensor
             state: "on"
-        sequence:
-          - service: timer.cancel
-            target:
-              entity_id: !input timer_entity
-
-      - conditions:
-          - condition: state
-            entity_id: !input switch_entity
-            state: "off"
         sequence:
           - service: timer.cancel
             target:
