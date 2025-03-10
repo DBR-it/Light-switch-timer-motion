@@ -1,0 +1,67 @@
+blueprint:
+  name: Switch Timer with Motion Reset
+  description: Automatically turn off a switch (e.g., lights) when no motion is detected
+  domain: automation
+  input:
+    motion_sensor:
+      name: Motion Sensor
+      description: Motion sensor to detect presence
+      selector:
+        entity:
+          domain: binary_sensor
+          device_class: motion
+    switch_entity:
+      name: Switch
+      description: Switch to control (e.g., lights, fan, etc.)
+      selector:
+        entity:
+          domain: switch
+    timer_entity:
+      name: Timer Helper
+      description: The timer entity to use for the countdown
+      selector:
+        entity:
+          domain: timer
+    duration:
+      name: Timer Duration (minutes)
+      description: Duration for the timer (in minutes)
+      default: 15
+      selector:
+        number:
+          min: 1
+          max: 60
+          unit_of_measurement: minutes
+          mode: slider
+
+trigger:
+  - platform: state
+    entity_id: !input switch_entity
+    to: "on"
+  - platform: state
+    entity_id: !input motion_sensor
+    to: "on"
+
+action:
+  - service: timer.start
+    target:
+      entity_id: !input timer_entity
+    data:
+      duration: "{{ (states('input_number.switch_timer_duration') | int) * 60 }}"
+
+  - wait_for_trigger:
+      - platform: state
+        entity_id: !input timer_entity
+        to: "idle"
+    timeout: 
+      minutes: !input duration
+    continue_on_timeout: true
+
+  - condition: state
+    entity_id: !input motion_sensor
+    state: "off"
+
+  - service: switch.turn_off
+    target:
+      entity_id: !input switch_entity
+
+mode: restart
