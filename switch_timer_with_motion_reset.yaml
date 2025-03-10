@@ -46,7 +46,7 @@ action:
     target:
       entity_id: !input timer_entity
     data:
-      duration: "{{ (states('input_number.switch_timer_duration') | int) * 60 }}"
+      duration: "{{ !input duration * 60 }}"
 
   - wait_for_trigger:
       - platform: state
