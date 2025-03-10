@@ -40,13 +40,30 @@ trigger:
   - platform: state
     entity_id: !input motion_sensor
     to: "on"
+  - platform: state
+    entity_id: !input motion_sensor
+    to: "off"
 
 action:
-  - service: timer.start
-    target:
-      entity_id: !input timer_entity
-    data:
-      duration: !input duration
+  - choose:
+      - conditions:
+          - condition: state
+            entity_id: !input motion_sensor
+            state: "off"
+        sequence:
+          - service: timer.start
+            target:
+              entity_id: !input timer_entity
+            data:
+              duration: !input duration
+      - conditions:
+          - condition: state
+            entity_id: !input motion_sensor
+            state: "on"
+        sequence:
+          - service: timer.cancel
+            target:
+              entity_id: !input timer_entity
 
   - wait_for_trigger:
       - platform: state
