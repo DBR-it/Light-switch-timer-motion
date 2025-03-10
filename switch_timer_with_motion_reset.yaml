@@ -1,51 +1,72 @@
 blueprint:
   name: Switch Timer with Motion Reset
-  description: Automatically turn off a switch (e.g., lights) when no motion is detected
+  description: >
+    This blueprint automatically turns off a switch (e.g., lights, fan) when no motion is detected.
+    It uses a timer that only starts when motion is not detected and resets if motion is detected again.
+    If the switch is manually turned off, the timer is also canceled.
   domain: automation
   input:
     motion_sensor:
       name: Motion Sensor
-      description: Motion sensor to detect presence
+      description: >
+        Select the motion sensor entity. When motion is detected, the timer will reset.
+        When no motion is detected, the timer will start and count down to turn off the switch.
       selector:
         entity:
           domain: binary_sensor
           device_class: motion
+
     switch_entity:
       name: Switch
-      description: Switch to control (e.g., lights, fan, etc.)
+      description: >
+        Select the switch entity to control (e.g., light switch, fan switch).
+        When this switch is turned on, the automation will start monitoring motion.
       selector:
         entity:
           domain: switch
+
     timer_entity:
       name: Timer Helper
-      description: The timer entity to use for the countdown
+      description: >
+        Select the timer helper to use for the countdown. The timer will start when no motion
+        is detected and will reset when motion is detected again.
       selector:
         entity:
           domain: timer
+
     duration:
       name: Timer Duration (minutes)
-      description: Duration for the timer (in minutes)
+      description: >
+        Set the duration for the countdown timer. The switch will turn off when this time elapses
+        without any motion detected.
       default: 15
       selector:
         number:
           min: 1
           max: 60
           unit_of_measurement: minutes
-          mode: slider
+          mode: box
 
 trigger:
   - platform: state
     entity_id: !input switch_entity
     to: "on"
+    description: 'Trigger when the switch is turned on'
+
   - platform: state
     entity_id: !input motion_sensor
     to: "on"
+    description: 'Trigger when motion is detected'
+
   - platform: state
     entity_id: !input motion_sensor
     to: "off"
+    description: 'Trigger when motion stops'
+
   - platform: state
     entity_id: !input switch_entity
     to: "off"
+    description: 'Trigger when the switch is turned off manually'
 
 action:
   - choose:
@@ -58,7 +79,8 @@ action:
             target:
               entity_id: !input timer_entity
             data:
-              duration: !input duration
+              duration: "00:{{ '{:02}'.format(!input duration) }}:00"
+            description: 'Start the timer when no motion is detected'
 
       - conditions:
           - condition: state
@@ -68,6 +90,7 @@ action:
           - service: timer.cancel
             target:
               entity_id: !input timer_entity
+            description: 'Cancel the timer when motion is detected'
 
       - conditions:
           - condition: state
@@ -77,21 +100,23 @@ action:
           - service: timer.cancel
             target:
               entity_id: !input timer_entity
+            description: 'Cancel the timer if the switch is turned off manually'
 
   - wait_for_trigger:
       - platform: state
         entity_id: !input timer_entity
         to: "idle"
-    timeout: 
-      minutes: !input duration
     continue_on_timeout: true
+    description: 'Wait until the timer finishes counting down'
 
   - condition: state
     entity_id: !input motion_sensor
     state: "off"
+    description: 'Ensure no motion is detected before turning off the switch'
 
   - service: switch.turn_off
     target:
       entity_id: !input switch_entity
+    description: 'Turn off the switch when the timer is complete and no motion is detected'
 
 mode: restart
